@@ -93,6 +93,14 @@ function process_order(req_data) {
     d = d + 5.0;
   }
 
+  if (x.coupon ==="FLASH25"){
+    if(tmp_total > 100) {
+      d += tmp_total *0.25;
+    }
+  } else if (x.coupon === 'DESC5' && (tmp_total -d) >20){
+    d += 5.0;
+  }
+
   last_discount = d;
   var base_taxable = tmp_total - d;
   if (base_taxable < 0) base_taxable = 0;
