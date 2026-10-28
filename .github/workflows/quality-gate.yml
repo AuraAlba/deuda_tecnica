@@ -24,17 +24,14 @@ jobs:
       - name: Instalar Dependencias
         run: npm ci
 
-      - name: 1. Inspección Estática (Linter)
-        run: npm run lint --if-present
+      - name: Gate 1 - Verificación Estática (Linter)
+        run: npm run lint
 
-      - name: 2. Auditoría de Seguridad de Dependencias
+      - name: Gate 2 - Auditoría de Seguridad de Dependencias
         run: npm audit --audit-level=high
 
-      - name: 3. Ejecución de Pruebas Unitarias
-        run: npm test
-
-      - name: 4. Verificación de Quality Gate
+      - name: Gate 3 & 4 - Pruebas Unitarias y Cobertura Mínima (>=80%)
         run: |
-          echo "======================================"
-          echo "✅ Todos los Quality Gates superados!"
-          echo "======================================"
+          # Ejecuta las pruebas exigiendo el umbral mínimo de cobertura de código
+          npm test -- --coverage --coverage-report=text --check-coverage --lines 80
+          
