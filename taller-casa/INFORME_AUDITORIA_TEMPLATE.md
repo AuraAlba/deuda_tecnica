@@ -1,10 +1,10 @@
 # Informe Técnico de Auditoría Forense y Plan de Remediación Continua
 > **Cliente:** FastPay Global Inc.  
-> **Equipo Consultor:** Aura Milena Alba
+> **Equipo Consultor:** Aura Milena Alba. 
 > **Fecha:** [27/10/2026]  
 > **Repositorio Auditado:** `https://github.com/AuraAlba/deuda_tecnica`  
 > **Commit Hash Base:** `e272c43`  
-> **Commit Hash Remediado:** `[SHA del commit final con Quality Gates]`  
+> **Commit Hash Remediado:** `e450baf`  
 
 ---
 
@@ -27,13 +27,18 @@ El microservicio core de facturación de FastPay Global (fastpay-billing-service
 
 ## 2. Inventario Formal y Clasificación de Deuda Técnica
 
-*| ID | Ubicación / Archivo | Tipo de Deuda | Descripción del Hallazgo / Smell | Cuadrante de Martin Fowler | Subcaracterística ISO/IEC 25010 | Principal ($P$) Estimado (Horas) | Interés Mensual ($I$) Estimado (Horas/USD) |
+| ID | Ubicación / Archivo | Tipo de Deuda | Descripción del Hallazgo / Smell | Cuadrante de Martin Fowler | Subcaracterística ISO/IEC 25010 | Principal ($P$) Estimado (Horas) | Interés Mensual ($I$) Estimado (Horas/USD) |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **DT-06** | `src/server.js:L7` | Deuda de Configuración | Ausencia de validación formal de variables de entorno al arrancar la aplicación (`process.env`), permitiendo ejecuciones con configuraciones incompletas o inseguras. | Deliberada - Prudente | Fiabilidad (Madurez y Recuperabilidad) | 6 h | 4 h / mes en fallos de despliegue |
-| **DT-07** | `src/server.js:L45` | Deuda de Seguridad / Observabilidad | Fuga de información sensible y trazas internas completas (`err.stack`) devueltas al cliente en las respuestas HTTP 500 ante excepciones no controladas. | Deliberada - Temeraria | Seguridad (Confidencialidad) | 8 h | Alto riesgo de exposición de arquitectura interna |
-| **DT-08** | `src/server.js:L58` | Deuda de Rendimiento / Concurrencia | Endpoint de procesamiento masivo (`/api/subscriptions/batch-run`) implementado con un bucle síncrono bloqueante que satura el Event Loop global del servidor. | Deliberada - Temeraria | Eficiencia de Desempeño (Comportamiento temporal) | 14 h | 12 h / mes de degradación de latencia general |
-| **DT-09** | `package.json` | Deuda de Mantenibilidad / Supply Chain | Uso de versiones de dependencias estáticas antiguas sin política de actualización automática ni escaneo continuo de paquetes obsoletos. | Inadvertida - Prudente | Mantenibilidad (Modificabilidad) | 6 h | 5 h / trimestre en auditorías de parches |
-| **DT-10** | `src/server.js` | Deuda de Diseño de API | Ausencia de validación de esquemas de entrada (ej. DTOs o librerías de validación) y falta de especificación OpenAPI/Swagger para los endpoints de cobro. | Deliberada - Prudente | Adecuación Funcional (Corrección) y Mantenibilidad | 10 h | 15 h / sprint en fricción de integración |
+| **DT-01** | `src/legacy_billing_engine.js:L21` | Deuda de Arquitectura / Diseño | *God Method* (`processSubscriptionBilling`) que acopla Express, reglas de negocio, cálculo de impuestos e I/O de archivos síncronos[cite: 6]. | Deliberada - Temeraria | Mantenibilidad (Modularidad) | 24 h | 20 h / mes en mantenimiento |
+| **DT-02** | `src/legacy_billing_engine.js:L10` | Deuda de Seguridad | Secreta de API hardcodeada directamente en el código fuente[cite: 6]. | Deliberada - Temeraria | Seguridad (Confidencialidad) | 4 h | Alto riesgo de filtración de claves |
+| **DT-03** | `data/subscriptions.json` | Deuda de Concurrencia | Ausencia de control transaccional o Mutex, provocando condiciones de carrera y cobros duplicados en peticiones simultáneas[cite: 3, 5]. | Inadvertida - Temeraria | Fiabilidad (Tolerancia a fallos) | 18 h | $8,750 USD en reembolsos / incidentes |
+| **DT-04** | `src/legacy_billing_engine.js:L98` | Deuda de Resiliencia | Falta de Circuit Breaker / Retries estructurados ante fallos de timeout de la pasarela[cite: 3, 6]. | Inadvertida - Prudente | Fiabilidad (Recuperabilidad) | 12 h | $6,300 USD por cobros fallidos |
+| **DT-05** | `src/legacy_billing_engine.js:L90` | Deuda de Exactitud Matemática | Operaciones monetarias directas con floats de JavaScript (`0.1 + 0.2 != 0.3`) provocando descalces de saldos[cite: 3, 6]. | Inadvertida - Temeraria | Adecuación Funcional (Exactitud) | 8 h | $4,920 USD en descuadres contables[cite: 3] |
+| **DT-06** | `src/server.js:L7` | Deuda de Configuración | Ausencia de validación formal de variables de entorno al arrancar la aplicación (`process.env`)[cite: 7]. | Deliberada - Prudente | Fiabilidad (Madurez) | 6 h | 4 h / mes en fallos de despliegue |
+| **DT-07** | `src/server.js:L45` | Deuda de Seguridad | Fuga de información sensible y trazas internas (`err.stack`) en respuestas HTTP 500[cite: 7]. | Deliberada - Temeraria | Seguridad (Confidencialidad) | 8 h | Exposición de arquitectura interna |
+| **DT-08** | `src/server.js:L58` | Deuda de Rendimiento | Endpoint de procesamiento masivo (`/batch-run`) con bucle síncrono bloqueante que congela el Event Loop[cite: 3, 7]. | Deliberada - Temeraria | Eficiencia de Desempeño | 14 h | 12 h / mes de latencia general[cite: 3] |
+| **DT-09** | `package.json` | Deuda de Supply Chain | Dependencias obsoletas sin política de actualización automática. | Inadvertida - Prudente | Mantenibilidad (Modificabilidad) | 6 h | 5 h / trimestre en auditorías |
+| **DT-10** | `src/server.js` | Deuda de Diseño API | Ausencia de validación de DTOs de entrada y especificación OpenAPI. | Deliberada - Prudente | Adecuación Funcional | 10 h | 15 h / sprint en fricción de integración |
 
 ---
 
@@ -65,18 +70,10 @@ $$ \text{TDR} = \frac{\text{Costo de Remediación (Principal)}}{\text{Costo Tota
 ```text
        ALTO IMPACTO
             ▲
-            │  [DT-03: Concurrencia y Cobro Duplicado]    [DT-01: God Method Facturación]
+            │  [DT-03: Concurrencia / Cobro Duplicado]     [DT-01: Refactor Hexagonal God Method]
             │  (Prioridad 1 - Sprint 1)                   (Prioridad 2 - Sprint 1)
             │
-            │  [DT-02: Secretos Hardcodeados]             [DT-04: Circuit Breaker Pasarela]
-            │  (Quick Win - Prioridad 1)                  (Prioridad 3 - Sprint 2)
-            │
-            └────────────────────────────────────────────────────────►
-           BAJO ESFUERZO                                     ALTO ESFUERZO
-
-       ALTO IMPACTO
-            ▲
-            │  [DT-08: Batch Síncrono Bloqueante]       [DT-10: Ausencia de DTOs / Validación API]
+            │  [DT-08: Batch Síncrono Bloqueante]       [DT-10: Ausencia de DTOs / Validación]
             │  (Prioridad 1 - Sprint 1)                (Prioridad 2 - Sprint 1)
             │
             │  [DT-07: Fuga de Errores Stack Trace]    [DT-06: Configuración sin Validación]
@@ -85,7 +82,7 @@ $$ \text{TDR} = \frac{\text{Costo de Remediación (Principal)}}{\text{Costo Tota
             │                                           [DT-09: Dependencias Obsoletas]
             │                                           (Prioridad 4 - Mantenimiento)
             └────────────────────────────────────────────────────────────────────────►
-           BAJO  ESFUERZO                                                         ALTO ESFUERZO    
+           BAJO ESFUERZO                                                         ALTO ESFUERZO  
 ```
 
 ### 4.2 Registro de Deuda Táctica Deliberada (Technical Debt Register)
@@ -112,10 +109,13 @@ El microservicio fue completamente desacoplado del motor acoplado de Express y d
 
 ```text
 src/
-├── domain/            # Entidades puras y Value Objects (Subscription, Money, TaxRule)
-├── application/       # Casos de uso de negocio (ProcessBillingUseCase, BatchBillingUseCase)
-├── ports/             # Interfaces abstractas de contratos (SubscriptionRepositoryPort, PaymentGatewayPort)
-└── infrastructure/    # Adaptadores concretos (ExpressController, JsonFileSubscriptionRepository, MockStripeAdapter)
+├── domain/            # Entidades puras y Value Objects (Subscription.js, Money.js)
+├── application/       # Casos de uso de negocio (ProcessBillingUseCase.js)
+├── ports/             # Contratos abstractos (SubscriptionRepositoryPort.js, PaymentGatewayPort.js)
+└── infrastructure/    # Adaptadores concretos
+    ├── persistence/   # JsonFileSubscriptionRepository.js
+    ├── gateway/       # StripePaymentGateway.js
+    └── http/          # ExpressController.js, server.js
 ```
 
 ### 5.3 Principios SOLID y Patrones Aplicados
@@ -134,15 +134,26 @@ El pipeline automatizado de integración continua y control de calidad se config
 
 ### 6.2 Evidencias de Bloqueo y Aprobación
 1. **Captura / Log de Pull Request Bloqueado:**
-   *(Insertar enlace o captura de pantalla donde el Quality Gate falló intencionalmente debido a cobertura < 80% o error de linter).*
-2. **Captura / Log de Pull Request Exitoso (Merge Permitido):**
-   *(Insertar enlace o captura de pantalla donde todos los checks están en verde y se aprueba el merge a `main`).*
+   > *Evidencia:* Durante las pruebas iniciales del pipeline, se introdujo deliberadamente una regresión en la cobertura y errores de linter. El workflow de GitHub Actions ejecutó los checks y bloqueó automáticamente el merge del Pull Request.
+   
+   ![Evidencia de Quality Gate Bloqueado](./fastpay-service/images/test1.png)
 
+2. **Captura / Log de Pull Request Exitoso (Merge Permitido):**
+   > *Evidencia:* Durante las pruebas iniciales del pipeline, se introdujo deliberadamente una regresión en la cobertura y errores de linter. El workflow de GitHub Actions ejecutó los checks y bloqueó automáticamente el merge del Pull Request.
+
+   ![Evidencia de Quality Success](./fastpay-service/images/test2.png)
 ---
 
 ## 7. Conclusiones y Gobernanza Continua (ISO/IEC/IEEE 12207)
 
-*Responde a las siguientes preguntas de reflexión profesional:*
-1. ¿De qué manera la adopción de Arquitectura Hexagonal y Value Objects previene la reaparición de la deuda técnica inadvertida?
-2. Si el negocio impone una fecha límite agresiva para una nueva pasarela de pago, ¿cuál es el procedimiento formal que seguiría su equipo para contraer deuda deliberada sin caer en deuda negligente?
-3. ¿Cómo sustentarían ante el Director Financiero (CFO) que invertir un 20% de la capacidad de cada sprint en pagar deuda técnica ahorra dinero a la organización?
+### 1. ¿De qué manera la adopción de Arquitectura Hexagonal y Value Objects previene la reaparición de la deuda técnica inadvertida?
+La Arquitectura Hexagonal aísla por completo las reglas de negocio puras (Dominio) de los detalles de infraestructura (HTTP, archivos planos, pasarelas de pago). Esto garantiza que cualquier cambio técnico externo no contamine la lógica core. Por su parte, los Value Objects (como `Money`) garantizan la inmutabilidad y eliminan errores de representación de datos (*Primitive Obsession* y redondeo flotante), haciendo imposible reintroducir fallos de precisión financiera por descuido o desconocimiento del lenguaje.
+
+### 2. Si el negocio impone una fecha límite agresiva para una nueva pasarela de pago, ¿cuál es el procedimiento formal que seguiría su equipo para contraer deuda deliberada sin caer en deuda negligente?
+Se debe documentar formalmente en el **Registro de Deuda Táctica (TDR)** especificando:
+1. La razón de negocio y el alcance exacto del "atajo".
+2. Las medidas de mitigación temporal (ej. logs extendidos, monitoreo estricto o fallbacks manuales).
+3. Una fecha límite fija e improrrogable (*Debt Ceiling*) para el pago del Principal (refactorización) asignada dentro del plan de capacidad de los sprints posteriores, evitando que el atajo se convierta en una falla permanente.
+
+### 3. ¿Cómo sustentarían ante el Director Financiero (CFO) que invertir un 20% de la capacidad de cada sprint en pagar deuda técnica ahorra dinero a la organización?
+Se demuestra mediante el **Análisis del ROI y del Interés de Deuda**: El informe forense probó que no pagar la deuda técnica le costó a FastPay $49,470.00 USD en reembolsos directos y 161 horas desperdiciadas en apagar incendios[cite: 3]. Invertir un 20% del sprint en calidad de software reduce el tiempo de desarrollo de nuevas funcionalidades a mediano plazo, elimina penalizaciones financieras por indisponibilidad y protege la reputación del negocio, transformando el gasto operativo en ahorro neto recurrente.
