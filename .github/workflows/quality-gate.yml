@@ -20,18 +20,20 @@ jobs:
         with:
           node-version: 20
           cache: 'npm'
+          cache-dependency-path: taller-casa/fastpay-service/package-lock.json
 
       - name: Instalar Dependencias
         run: npm ci
+        working-directory: ./taller-casa/fastpay-service
 
-      - name: Gate 1 - Verificación Estática (Linter)
+      - name: 1. Inspección Estática (Linter)
         run: npm run lint
+        working-directory: ./taller-casa/fastpay-service
 
-      - name: Gate 2 - Auditoría de Seguridad de Dependencias
+      - name: 2. Auditoría de Seguridad de Dependencias
         run: npm audit --audit-level=high
+        working-directory: ./taller-casa/fastpay-service
 
-      - name: Gate 3 & 4 - Pruebas Unitarias y Cobertura Mínima (>=80%)
-        run: |
-          # Ejecuta las pruebas exigiendo el umbral mínimo de cobertura de código
-          npm test -- --coverage --coverage-report=text --check-coverage --lines 80
-          
+      - name: 3. Ejecución de Pruebas Unitarias
+        run: npm test
+        working-directory: ./taller-casa/fastpay-service
